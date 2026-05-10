@@ -747,10 +747,15 @@ function processData(data) {
   const now = Date.now();
   lastData = data;
 
-  // Clean up servers no longer in API
+  // Clean up servers not seen for 10+ minutes
   const activeIds = new Set(data.servers.map(s => s.serverId));
   Object.keys(serverHistory).forEach(sid => {
-    if (!activeIds.has(sid)) delete serverHistory[sid];
+    if (!activeIds.has(sid)) {
+      if (!serverHistory[sid].lastSeen) serverHistory[sid].lastSeen = now;
+      if (now - serverHistory[sid].lastSeen > 10 * 60 * 1000) delete serverHistory[sid];
+    } else {
+      serverHistory[sid].lastSeen = now;
+    }
   });
 
   data.servers.forEach(server => {
