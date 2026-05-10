@@ -718,37 +718,28 @@ function getBestStatus(sid) {
 }
 
 // ─── GOOGLE SHEETS EXPORT ───
-const SHEETS_URL = 'https://jb-proxy.baltictradingclub8.workers.dev/log';
+const PROXY_URL = 'https://jb-proxy.baltictradingclub8.workers.dev/log';
 let transitionQueue = [];
 let sampleQueue = [];
 
 function logTransition(event, robbery, serverId) {
-  transitionQueue.push({ timestamp: new Date().toISOString(), event, robbery, serverId });
+  transitionQueue.push({ type: 'transition', timestamp: new Date().toISOString(), event, robbery, serverId });
 }
 
 function sendToSheets(robbery, serverId, elapsed) {
-  sampleQueue.push({
-    timestamp: new Date().toISOString(),
-    robbery,
-    serverId,
-    cooldown_ms: elapsed,
-    cooldown_min: (elapsed/60000).toFixed(2)
-  });
+  sampleQueue.push({ type: 'sample', timestamp: new Date().toISOString(), robbery, serverId, cooldown_ms: elapsed, cooldown_min: (elapsed/60000).toFixed(2) });
 }
 
 async function flushQueues() {
-  if (transitionQueue.length === 0 && sampleQueue.length === 0) return;
-  const payload = { transitions: transitionQueue, samples: sampleQueue };
+  const all = [...transitionQueue, ...sampleQueue];
   transitionQueue = [];
   sampleQueue = [];
-  try {
-    await fetch(SHEETS_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-  } catch(e) { console.log('Sheets export failed:', e); }
+  for (const item of all) {
+    try {
+      const params = new URLSearchParams(item).toString();
+      await fetch(PROXY_URL + '?' + params);
+    } catch(e) {}
+  }
 }
 
 // ─── PROCESS API DATA ───
