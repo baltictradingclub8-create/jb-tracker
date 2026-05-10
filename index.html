@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JB Grind Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #06080a;
+  --bg2: #0a0e12;
+  --surface: #0e1419;
+  --surface2: #131c24;
+  --border: #1c2a35;
+  --border2: #243545;
+  --accent: #00c8ff;
+  --accent-dim: rgba(0,200,255,0.12);
+  --green: #00ff88;
+  --green-dim: rgba(0,255,136,0.1);
+  --yellow: #ffcc00;
+  --yellow-dim: rgba(255,204,0,0.1);
+  --orange: #ff6b35;
+  --red: #ff3355;
+  --dim: #2a4055;
+  --dim2: #3a5570;
+  --text: #8ab4cc;
+  --text2: #c5dde8;
+  --white: #e8f4fa;
+  --mono: 'JetBrains Mono', monospace;
+  --ui: 'Rajdhani', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  min-height: 100vh;
+}
+
+/* Grid bg */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,200,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,200,255,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── HEADER ─── */
+header {
+  position: sticky; top: 0; z-index: 200;
+  background: rgba(6,8,10,0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.logo {
+  font-family: var(--ui);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--white);
+  white-space: nowrap;
+}
+.logo em { color: var(--accent); font-style: normal; }
+
+.hstats {
+  display: flex;
+  gap: 16px;
+  margin-left: auto;
+  align-items: center;
+}
+.hstat { font-size: 11px; color: var(--dim2); }
+.hstat b { color: var(--accent); font-weight: 700; }
+.hstat.good b { color: var(--green); }
+
+#live-dot {
+  width: 7px; height: 7px;
+  background: var(--green);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--green);
+  animation: livepulse 2s ease-in-out infinite;
+}
+@keyframes livepulse {
+  0%,100% { opacity:1; box-shadow: 0 0 6px var(--green); }
+  50% { opacity:0.3; box-shadow: none; }
+}
+
+#refresh-bar {
+  height: 2px;
+  background: var(--border);
+  position: relative;
+  overflow: hidden;
+}
+#refresh-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 1s linear;
+  box-shadow: 0 0 6px var(--accent);
+}
+
+/* ─── ROBBERY SELECTOR ─── */
+#selector-panel {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 20px;
+  position: relative;
+  z-index: 10;
+}
+
+.selector-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.selector-title {
+  font-family: var(--ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--dim2);
+}
+.sel-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.pill-btn {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 3px 9px;
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--dim2);
+  cursor: pointer;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: all 0.15s;
+}
+.pill-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.robbery-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rob-pill {
+  font-family: var(--ui);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border: 1px solid var(--border2);
+  color: var(--dim2);
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+  position: relative;
+}
+.rob-pill:hover { border-color: var(--dim2); color: var(--text); }
+.rob-pill.selected {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+.rob-pill .learned-cd {
+  position: absolute;
+  top: -7px; right: -4px;
+  font-size: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--yellow);
+  padding: 0 3px;
+  font-family: var(--mono);
+}
+
+/* ─── FILTER BAR ─── */
+#filter-bar {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 20px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 10;
+}
+
+.fbtn {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--dim2);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.12s;
+}
+.fbtn:hover { border-color: var(--dim2); color: var(--text); }
+.fbtn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.fbtn.active.green { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+
+.fsep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+
+.sort-label { font-size: 10px; color: var(--dim2); text-transform: uppercase; letter-spacing: 1px; }
+
+/* ─── STATS ROW ─── */
+#stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border-bottom: 1px solid var(--border);
+  position: relative; z-index: 10;
+}
+.stat-cell {
+  background: var(--bg2);
+  padding: 10px 16px;
+}
+.stat-cell .slabel {
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--dim2);
+  margin-bottom: 2px;
+}
+.stat-cell .sval {
+  font-family: var(--ui);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent);
+}
+.stat-cell .sval.g { color: var(--green); }
+.stat-cell .sval.y { color: var(--yellow); }
+.stat-cell .sval.s { color: var(--text2); font-size: 16px; }
+
+/* ─── MAIN CONTENT ─── */
+#main { padding: 16px 20px; position: relative; z-index: 1; }
+
+.section-head {
+  font-family: var(--ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--dim2);
+  padding: 4px 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-head::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.server-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+/* ─── SERVER CARD ─── */
+.scard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 12px 14px 10px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s, transform 0.1s;
+  animation: cardin 0.25s ease both;
+}
+@keyframes cardin { from { opacity:0; transform: translateY(3px); } to { opacity:1; transform:none; } }
+
+.scard:hover { transform: translateY(-1px); }
+
+.scard::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--dim);
+}
+.scard.has-open { border-color: rgba(0,200,255,0.25); }
+.scard.has-open::before { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.scard.has-imminent { border-color: rgba(0,255,136,0.25); }
+.scard.has-imminent::before { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.scard.has-soon { border-color: rgba(255,204,0,0.2); }
+.scard.has-soon::before { background: var(--yellow); }
+
+/* glow bg for open */
+.scard.has-open::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at top left, rgba(0,200,255,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+.card-sid {
+  font-size: 9px;
+  color: var(--dim2);
+  letter-spacing: 0.5px;
+}
+.card-meta {
+  display: flex;
+  gap: 10px;
+  font-size: 10px;
+  color: var(--dim2);
+  margin-bottom: 8px;
+}
+.card-meta b { color: var(--text2); }
+
+/* best robbery highlight */
+.best-rob {
+  font-family: var(--ui);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.best-rob.open { color: var(--accent); text-shadow: 0 0 12px rgba(0,200,255,0.5); }
+.best-rob.imminent { color: var(--green); text-shadow: 0 0 12px rgba(0,255,136,0.4); animation: gblink 0.9s step-end infinite; }
+.best-rob.soon { color: var(--yellow); }
+.best-rob.cooling { color: var(--dim2); }
+.best-rob.unknown { color: var(--dim); }
+@keyframes gblink { 50% { opacity: 0.5; } }
+
+.best-time {
+  font-size: 11px;
+  color: var(--dim2);
+  margin-top: 1px;
+}
+.best-time b { color: var(--text); }
+
+/* robbery rows */
+.rob-rows {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.rob-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--border);
+}
+.rob-row:last-child { border-bottom: none; }
+
+.rob-name {
+  font-family: var(--ui);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  width: 90px;
+  flex-shrink: 0;
+  color: var(--dim2);
+}
+.rob-name.selected-rob { color: var(--text2); }
+.rob-name.selected-rob.open { color: var(--accent); }
+.rob-name.selected-rob.imminent { color: var(--green); }
+.rob-name.selected-rob.soon { color: var(--yellow); }
+
+.rob-bar-wrap {
+  flex: 1;
+  height: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+.rob-bar {
+  height: 100%;
+  transition: width 2s linear;
+}
+.rob-bar.open { background: var(--accent); box-shadow: 0 0 4px var(--accent); width: 100%; }
+.rob-bar.imminent { background: var(--green); }
+.rob-bar.soon { background: var(--yellow); }
+.rob-bar.cooling { background: var(--dim); }
+.rob-bar.unknown { background: var(--dim); width: 10%; }
+
+.rob-timer {
+  font-size: 10px;
+  color: var(--dim2);
+  width: 44px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.rob-timer.open { color: var(--accent); font-weight: 700; }
+.rob-timer.imminent { color: var(--green); font-weight: 700; }
+.rob-timer.soon { color: var(--yellow); }
+
+.rob-star {
+  font-size: 9px;
+  color: var(--dim);
+  width: 10px;
+  flex-shrink: 0;
+}
+.rob-star.sel { color: var(--accent); }
+
+.join-btn {
+  display: block;
+  margin-top: 8px;
+  width: 100%;
+  text-align: center;
+  padding: 5px;
+  border: 1px solid var(--border2);
+  color: var(--dim2);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: all 0.15s;
+  background: transparent;
+}
+.join-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.scard.has-open .join-btn { border-color: var(--accent); color: var(--accent); }
+.scard.has-imminent .join-btn { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+
+/* show/hide rows toggle */
+.toggle-rows {
+  font-size: 9px;
+  color: var(--dim2);
+  cursor: pointer;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: 6px;
+  display: inline-block;
+}
+.toggle-rows:hover { color: var(--text); }
+
+/* loading / empty */
+.loading-msg {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--dim2);
+}
+.spin { display: inline-block; animation: spin 1s linear infinite; font-size: 20px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* cooldown panel */
+#cd-panel {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  padding: 10px 20px;
+  font-size: 10px;
+  color: var(--dim2);
+  display: none;
+}
+#cd-panel.visible { display: block; }
+.cd-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+.cd-item {
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  font-family: var(--mono);
+}
+.cd-item b { color: var(--yellow); }
+</style>
+</head>
+<body>
+
+<div id="refresh-bar"><div id="refresh-fill" style="width:100%"></div></div>
+
+<header>
+  <div class="logo">JB <em>GRIND</em> TRACKER</div>
+  <div id="live-dot"></div>
+  <div class="hstats">
+    <div class="hstat">SERVERS <b id="h-servers">—</b></div>
+    <div class="hstat good">SELECTED OPEN <b id="h-selopen">—</b></div>
+    <div class="hstat">UPDATED <b id="h-updated">—</b></div>
+    <div class="hstat">NEXT REFRESH <b id="h-refresh">30s</b></div>
+  </div>
+</header>
+
+<div id="selector-panel">
+  <div class="selector-header">
+    <div class="selector-title">Select Robberies to Grind</div>
+    <div class="sel-actions">
+      <button class="pill-btn" onclick="selectAll()">ALL</button>
+      <button class="pill-btn" onclick="selectNone()">NONE</button>
+      <button class="pill-btn" onclick="toggleShowAll()" id="btn-showall">SHOW ALL ROBBERIES ON CARDS</button>
+      <button class="pill-btn" onclick="toggleCdPanel()" id="btn-cdpanel">LEARNED COOLDOWNS</button>
+    </div>
+  </div>
+  <div class="robbery-pills" id="robbery-pills"></div>
+</div>
+
+<div id="filter-bar">
+  <span class="sort-label">SHOW:</span>
+  <button class="fbtn active" id="fb-all" onclick="setShow('all')">ALL</button>
+  <button class="fbtn" id="fb-open" onclick="setShow('open')">OPEN</button>
+  <button class="fbtn" id="fb-imminent" onclick="setShow('imminent')">IMMINENT+</button>
+  <div class="fsep"></div>
+  <span class="sort-label">SORT:</span>
+  <button class="fbtn active" id="fs-best" onclick="setSort('best')">BEST MATCH</button>
+  <button class="fbtn" id="fs-players" onclick="setSort('players')">MOST PLAYERS</button>
+  <div class="fsep"></div>
+  <button class="fbtn" id="fb-hidelo" onclick="toggleHideLow()">HIDE &lt;3 PLAYERS</button>
+</div>
+
+<div id="stats-row">
+  <div class="stat-cell"><div class="slabel">Selected Open</div><div class="sval g" id="s-open">—</div></div>
+  <div class="stat-cell"><div class="slabel">Imminent</div><div class="sval g" id="s-imminent">—</div></div>
+  <div class="stat-cell"><div class="slabel">Soon (≤3min)</div><div class="sval y" id="s-soon">—</div></div>
+  <div class="stat-cell"><div class="slabel">Servers Tracked</div><div class="sval" id="s-servers">—</div></div>
+  <div class="stat-cell"><div class="slabel">CD Samples</div><div class="sval s" id="s-samples">0</div></div>
+</div>
+
+<div id="cd-panel">
+  <div style="letter-spacing:2px;text-transform:uppercase;font-size:9px;">Learned Cooldowns (min) — updates automatically as robberies cycle</div>
+  <div class="cd-grid" id="cd-grid"></div>
+</div>
+
+<div id="main">
+  <div class="loading-msg"><span class="spin">⟳</span><br><br>Fetching server data...</div>
+</div>
+
+<script>
+// ─── CONFIG ───
+const API = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.jbvalues.com/v1/robbery-state');
+const REFRESH_MS = 30000;
+const DEFAULT_CD = 8 * 60 * 1000;
+const MAX_CD = 15 * 60 * 1000;
+const MIN_CD = 60 * 1000;
+
+// ─── ROBBERY DEFINITIONS ───
+const ROBBERIES = [
+  { key: 'JEWELRY',        label: 'J-Store',     defaultCd: 8 },
+  { key: 'BANK',           label: 'Bank',        defaultCd: 8 },
+  { key: 'BANK2',          label: 'Bank 2',      defaultCd: 8 },
+  { key: 'MUSEUM',         label: 'Museum',      defaultCd: 8 },
+  { key: 'TOMB',           label: 'Tomb',        defaultCd: 8 },
+  { key: 'MANSION',        label: 'Mansion',     defaultCd: 8 },
+  { key: 'POWER_PLANT',    label: 'Power Plant', defaultCd: 8 },
+  { key: 'CROWN_JEWEL',    label: 'Crown Jewel', defaultCd: 8 },
+  { key: 'MONEY_TRUCK',    label: 'Money Truck', defaultCd: 5 },
+  { key: 'STORE_DONUT',    label: 'Donut',       defaultCd: 5 },
+  { key: 'STORE_GAS',      label: 'Gas Station', defaultCd: 5 },
+  { key: 'OIL_RIG',        label: 'Oil Rig',     defaultCd: 10 },
+  { key: 'TRAIN_PASSENGER',label: 'Train-P',     defaultCd: 12 },
+  { key: 'TRAIN_CARGO',    label: 'Train-C',     defaultCd: 12 },
+  { key: 'CARGO_PLANE',    label: 'Cargo Plane', defaultCd: 12 },
+  { key: 'CARGO_SHIP',     label: 'Cargo Ship',  defaultCd: 15 },
+];
+const ROB_MAP = Object.fromEntries(ROBBERIES.map(r => [r.key, r]));
+
+// ─── STATE ───
+let selectedRobs = new Set(['JEWELRY']);
+let showAllOnCards = false;
+let showFilter = 'all';
+let sortMode = 'best';
+let hideLowPlayers = false;
+let serverHistory = {}; // sid -> { closedAt:{KEY:ts}, openedAt:{KEY:ts}, lastStatus:{KEY:'open'|'closed'}, server }
+let cdSamples = {}; // KEY -> [ms, ...]
+let lastData = null;
+let refreshCountdown = 30;
+let countdownInterval = null;
+
+// Load saved selections
+try {
+  const saved = localStorage.getItem('jbgt_selected');
+  if (saved) selectedRobs = new Set(JSON.parse(saved));
+} catch(e) {}
+
+function saveSelections() {
+  try { localStorage.setItem('jbgt_selected', JSON.stringify([...selectedRobs])); } catch(e) {}
+}
+
+// ─── COOLDOWN HELPERS ───
+function getLearnedCd(key) {
+  const samples = cdSamples[key];
+  if (!samples || samples.length < 3) return null;
+  const sorted = [...samples].sort((a,b)=>a-b);
+  // median
+  return sorted[Math.floor(sorted.length/2)];
+}
+
+function getCdMs(key) {
+  const learned = getLearnedCd(key);
+  if (learned) return learned;
+  const rob = ROB_MAP[key];
+  return (rob ? rob.defaultCd : 8) * 60 * 1000;
+}
+
+// ─── BUILD SELECTOR ───
+function buildSelector() {
+  const container = document.getElementById('robbery-pills');
+  container.innerHTML = '';
+  ROBBERIES.forEach(rob => {
+    const el = document.createElement('div');
+    el.className = 'rob-pill' + (selectedRobs.has(rob.key) ? ' selected' : '');
+    el.dataset.key = rob.key;
+
+    const learned = getLearnedCd(rob.key);
+    const cdBadge = learned ? `<span class="learned-cd">${(learned/60000).toFixed(1)}m</span>` : '';
+    el.innerHTML = rob.label + cdBadge;
+
+    el.onclick = () => {
+      if (selectedRobs.has(rob.key)) {
+        selectedRobs.delete(rob.key);
+        el.classList.remove('selected');
+      } else {
+        selectedRobs.add(rob.key);
+        el.classList.add('selected');
+      }
+      saveSelections();
+      renderFromCache();
+    };
+    container.appendChild(el);
+  });
+}
+
+function selectAll() { ROBBERIES.forEach(r => selectedRobs.add(r.key)); saveSelections(); buildSelector(); renderFromCache(); }
+function selectNone() { selectedRobs.clear(); saveSelections(); buildSelector(); renderFromCache(); }
+function toggleShowAll() {
+  showAllOnCards = !showAllOnCards;
+  document.getElementById('btn-showall').classList.toggle('active', showAllOnCards);
+  renderFromCache();
+}
+function toggleCdPanel() {
+  const p = document.getElementById('cd-panel');
+  p.classList.toggle('visible');
+  updateCdPanel();
+}
+
+function setShow(v) {
+  showFilter = v;
+  ['all','open','imminent'].forEach(x => document.getElementById('fb-'+x).classList.toggle('active', x===v));
+  renderFromCache();
+}
+function setSort(v) {
+  sortMode = v;
+  ['best','players'].forEach(x => document.getElementById('fs-'+x).classList.toggle('active', x===v));
+  renderFromCache();
+}
+function toggleHideLow() {
+  hideLowPlayers = !hideLowPlayers;
+  document.getElementById('fb-hidelo').classList.toggle('active', hideLowPlayers);
+  renderFromCache();
+}
+
+// ─── STATUS FOR A ROBBERY ON A SERVER ───
+function getRobStatus(sid, key) {
+  const h = serverHistory[sid];
+  if (!h || !h.server) return { status: 'unknown', minsLeft: null, pct: 0 };
+  const val = h.server.robberyData?.[key];
+  if (val === 'OPENED') return { status: 'open', minsLeft: 0, pct: 100 };
+  if (val === 'STARTED') return { status: 'open', minsLeft: 0, pct: 100, started: true };
+
+  const closedAt = h.closedAt?.[key];
+  if (!closedAt) return { status: 'unknown', minsLeft: null, pct: 0 };
+
+  const cdMs = getCdMs(key);
+  const elapsed = Date.now() - closedAt;
+  const remaining = cdMs - elapsed;
+  const pct = Math.min(100, (elapsed / cdMs) * 100);
+
+  if (remaining <= 0) return { status: 'imminent', minsLeft: 0, pct: 100 };
+  const minsLeft = remaining / 60000;
+  if (minsLeft <= 1) return { status: 'imminent', minsLeft, pct };
+  if (minsLeft <= 3) return { status: 'soon', minsLeft, pct };
+  return { status: 'cooling', minsLeft, pct };
+}
+
+// Best status among selected robberies for a server
+function getBestStatus(sid) {
+  if (selectedRobs.size === 0) return { status: 'unknown', key: null, minsLeft: null };
+  const order = { open:0, imminent:1, soon:2, cooling:3, unknown:4 };
+  let best = null;
+  for (const key of selectedRobs) {
+    const st = getRobStatus(sid, key);
+    if (!best || order[st.status] < order[best.status] ||
+        (order[st.status] === order[best.status] && st.minsLeft !== null && (best.minsLeft === null || st.minsLeft < best.minsLeft))) {
+      best = { ...st, key };
+    }
+  }
+  return best;
+}
+
+// ─── PROCESS API DATA ───
+function processData(data) {
+  const now = Date.now();
+  lastData = data;
+
+  data.servers.forEach(server => {
+    const sid = server.serverId;
+    if (!serverHistory[sid]) {
+      serverHistory[sid] = { closedAt: {}, openedAt: {}, lastStatus: {}, server };
+      // Init status for all robberies
+      ROBBERIES.forEach(rob => {
+        const val = server.robberyData?.[rob.key];
+        const isOpen = val === 'OPENED' || val === 'STARTED';
+        serverHistory[sid].lastStatus[rob.key] = isOpen ? 'open' : 'closed';
+        if (!isOpen) serverHistory[sid].closedAt[rob.key] = serverHistory[sid].closedAt[rob.key] || now;
+      });
+    } else {
+      const h = serverHistory[sid];
+      ROBBERIES.forEach(rob => {
+        const key = rob.key;
+        const val = server.robberyData?.[key];
+        const isOpen = val === 'OPENED' || val === 'STARTED';
+        const wasOpen = h.lastStatus[key] === 'open';
+
+        if (wasOpen && !isOpen) {
+          // Just closed
+          h.closedAt[key] = now;
+          h.lastStatus[key] = 'closed';
+        } else if (!wasOpen && isOpen) {
+          // Just opened — record cooldown sample
+          const closedAt = h.closedAt[key];
+          if (closedAt) {
+            const elapsed = now - closedAt;
+            if (elapsed > MIN_CD && elapsed < MAX_CD) {
+              if (!cdSamples[key]) cdSamples[key] = [];
+              cdSamples[key].push(elapsed);
+              if (cdSamples[key].length > 30) cdSamples[key].shift();
+            }
+          }
+          h.openedAt[key] = now;
+          h.lastStatus[key] = 'open';
+          delete h.closedAt[key];
+        }
+      });
+      h.server = server;
+    }
+  });
+
+  buildSelector(); // refresh badges
+  renderFromCache();
+  updateStats();
+  updateCdPanel();
+}
+
+// ─── RENDER ───
+function renderFromCache() {
+  if (!lastData) return;
+  const now = Date.now();
+
+  let servers = lastData.servers;
+  if (hideLowPlayers) servers = servers.filter(s => s.playerCount >= 3);
+
+  // Compute best status for each
+  const withBest = servers.map(s => ({ s, best: getBestStatus(s.serverId) }));
+
+  // Filter
+  const statusOrder = { open:0, imminent:1, soon:2, cooling:3, unknown:4 };
+  const filtered = withBest.filter(({ best }) => {
+    if (showFilter === 'open') return best.status === 'open';
+    if (showFilter === 'imminent') return best.status === 'open' || best.status === 'imminent';
+    return true;
+  });
+
+  // Sort
+  filtered.sort((a, b) => {
+    if (sortMode === 'players') return b.s.playerCount - a.s.playerCount;
+    // best match: by status, then by minsLeft
+    const od = statusOrder[a.best.status] - statusOrder[b.best.status];
+    if (od !== 0) return od;
+    if (a.best.minsLeft !== null && b.best.minsLeft !== null) return a.best.minsLeft - b.best.minsLeft;
+    if (a.best.minsLeft !== null) return -1;
+    if (b.best.minsLeft !== null) return 1;
+    return b.s.playerCount - a.s.playerCount;
+  });
+
+  // Group
+  const groups = {
+    open: filtered.filter(x => x.best.status === 'open'),
+    imminent: filtered.filter(x => x.best.status === 'imminent'),
+    soon: filtered.filter(x => x.best.status === 'soon'),
+    other: filtered.filter(x => x.best.status === 'cooling' || x.best.status === 'unknown'),
+  };
+
+  let html = '';
+
+  function renderGroup(icon, label, items) {
+    if (!items.length) return '';
+    let g = `<div class="section-head">${icon} ${label} <span style="color:var(--dim2);font-size:9px;margin-left:4px">(${items.length})</span></div>`;
+    g += '<div class="server-grid">';
+    items.forEach(({ s, best }) => {
+      g += renderCard(s, best, now);
+    });
+    g += '</div>';
+    return g;
+  }
+
+  html += renderGroup('●', 'SELECTED OPEN NOW', groups.open);
+  html += renderGroup('◆', 'IMMINENT — OPENING SOON', groups.imminent);
+  html += renderGroup('◇', 'SOON (1–3 MIN)', groups.soon);
+  if (showFilter === 'all') html += renderGroup('○', 'COOLING / UNKNOWN', groups.other);
+
+  if (!html) html = '<div class="loading-msg" style="padding:40px">No servers match your filter</div>';
+
+  document.getElementById('main').innerHTML = html;
+}
+
+function renderCard(server, best, now) {
+  const sid = server.serverId;
+  const cardClass = best.status === 'open' ? 'has-open' :
+                    best.status === 'imminent' ? 'has-imminent' :
+                    best.status === 'soon' ? 'has-soon' : '';
+
+  const updAgo = Math.round((now - new Date(server.updatedAt).getTime()) / 1000);
+
+  // Best robbery display
+  const bestRobLabel = best.key ? ROB_MAP[best.key]?.label : '—';
+  const bestTimeStr = best.status === 'open' ? 'OPEN NOW' :
+                      best.status === 'imminent' ? 'OPENING NOW' :
+                      best.minsLeft !== null ? `~${best.minsLeft.toFixed(1)} min` : 'UNKNOWN';
+
+  // Robberies to show on card
+  const robsToShow = showAllOnCards
+    ? ROBBERIES
+    : ROBBERIES.filter(r => selectedRobs.has(r.key));
+
+  let robRows = '';
+  robsToShow.forEach(rob => {
+    const st = getRobStatus(sid, rob.key);
+    const isSel = selectedRobs.has(rob.key);
+    const timerStr = st.status === 'open' ? 'OPEN' :
+                     st.status === 'imminent' ? '~0m' :
+                     st.minsLeft !== null ? `~${st.minsLeft.toFixed(1)}m` : '?';
+    robRows += `
+      <div class="rob-row">
+        <div class="rob-name ${isSel ? 'selected-rob ' + st.status : ''}">${rob.label}</div>
+        <div class="rob-bar-wrap"><div class="rob-bar ${st.status}" style="width:${st.pct.toFixed(0)}%"></div></div>
+        <div class="rob-timer ${st.status}">${timerStr}</div>
+        <div class="rob-star ${isSel ? 'sel' : ''}">${isSel ? '★' : '·'}</div>
+      </div>`;
+  });
+
+  return `
+  <div class="scard ${cardClass}">
+    <div class="card-top">
+      <div class="card-sid">${sid.slice(0,8)}…${sid.slice(-4)}</div>
+    </div>
+    <div class="card-meta">
+      <span>👥 <b>${server.playerCount}</b></span>
+      <span>upd <b>${updAgo}s</b> ago</span>
+      <span>srv <b>${server.serverTime.toFixed(0)}m</b> old</span>
+    </div>
+    <div class="best-rob ${best.status}">${bestRobLabel}</div>
+    <div class="best-time"><b>${bestTimeStr}</b></div>
+    ${robRows ? `<div class="rob-rows">${robRows}</div>` : ''}
+    <a class="join-btn" href="roblox://experiences/start?placeId=606849621&gameInstanceId=${sid}">▶ JOIN SERVER</a>
+  </div>`;
+}
+
+function updateStats() {
+  if (!lastData) return;
+  const sids = lastData.servers.map(s => s.serverId);
+  const bests = sids.map(sid => getBestStatus(sid));
+  document.getElementById('s-open').textContent = bests.filter(b=>b.status==='open').length;
+  document.getElementById('s-imminent').textContent = bests.filter(b=>b.status==='imminent').length;
+  document.getElementById('s-soon').textContent = bests.filter(b=>b.status==='soon').length;
+  document.getElementById('s-servers').textContent = lastData.servers.length;
+  const total = Object.values(cdSamples).reduce((a,b)=>a+b.length,0);
+  document.getElementById('s-samples').textContent = total;
+  document.getElementById('h-servers').textContent = lastData.servers.length;
+  document.getElementById('h-selopen').textContent = bests.filter(b=>b.status==='open').length;
+  document.getElementById('h-updated').textContent = new Date(lastData.fetchedAt).toLocaleTimeString();
+}
+
+function updateCdPanel() {
+  const grid = document.getElementById('cd-grid');
+  if (!grid) return;
+  grid.innerHTML = ROBBERIES.map(rob => {
+    const learned = getLearnedCd(rob.key);
+    const samples = cdSamples[rob.key]?.length || 0;
+    return `<div class="cd-item">${rob.label}: <b>${learned ? (learned/60000).toFixed(1)+'m' : '?'}</b> <span style="color:var(--dim2)">(${samples} samples)</span></div>`;
+  }).join('');
+}
+
+// ─── FETCH ───
+async function fetchData() {
+  try {
+    const res = await fetch(API);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    processData(data);
+  } catch(e) {
+    console.error('Fetch failed:', e);
+    if (!lastData) {
+      document.getElementById('main').innerHTML = '<div class="loading-msg">⚠ Could not load data.<br>Check console for details.</div>';
+    }
+  }
+}
+
+// ─── COUNTDOWN ───
+function startCountdown() {
+  clearInterval(countdownInterval);
+  refreshCountdown = 30;
+  const fill = document.getElementById('refresh-fill');
+  countdownInterval = setInterval(() => {
+    refreshCountdown--;
+    document.getElementById('h-refresh').textContent = refreshCountdown + 's';
+    fill.style.width = ((refreshCountdown / 30) * 100) + '%';
+    if (refreshCountdown <= 0) {
+      fetchData();
+      refreshCountdown = 30;
+    }
+  }, 1000);
+}
+
+// Re-render every 5s to update timers
+setInterval(() => { if (lastData) { renderFromCache(); updateStats(); } }, 5000);
+
+// ─── INIT ───
+buildSelector();
+fetchData();
+startCountdown();
+</script>
+</body>
+</html>
