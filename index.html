@@ -722,6 +722,12 @@ function processData(data) {
   const now = Date.now();
   lastData = data;
 
+  // Clean up servers no longer in API
+  const activeIds = new Set(data.servers.map(s => s.serverId));
+  Object.keys(serverHistory).forEach(sid => {
+    if (!activeIds.has(sid)) delete serverHistory[sid];
+  });
+
   data.servers.forEach(server => {
     const sid = server.serverId;
     if (!serverHistory[sid]) {
