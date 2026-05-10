@@ -731,6 +731,7 @@ function processData(data) {
         const val = server.robberyData?.[rob.key];
         const isOpen = val === 'OPENED' || val === 'STARTED';
         serverHistory[sid].lastStatus[rob.key] = isOpen ? 'open' : 'closed';
+        if (isOpen) serverHistory[sid].openedAt[rob.key] = now;
 
       });
     } else {
