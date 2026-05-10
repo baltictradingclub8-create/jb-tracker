@@ -717,6 +717,25 @@ function getBestStatus(sid) {
   return best;
 }
 
+// ─── GOOGLE SHEETS EXPORT ───
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwHxkH_E9qAtheU4UehNDSav1YcIYIthnyN7ad8e_yBjSWPEOrUSr-CmjJUSY-ZLdk/exec';
+async function sendToSheets(robbery, serverId, elapsed) {
+  try {
+    await fetch(SHEETS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        timestamp: new Date().toISOString(),
+        robbery,
+        serverId,
+        cooldown_ms: elapsed,
+        cooldown_min: (elapsed/60000).toFixed(2)
+      })
+    });
+  } catch(e) { console.log('Sheets export failed:', e); }
+}
+
 // ─── PROCESS API DATA ───
 function processData(data) {
   const now = Date.now();
@@ -763,6 +782,7 @@ function processData(data) {
               cdSamples[key].push(elapsed);
               if (cdSamples[key].length > 30) cdSamples[key].shift();
               saveCdSamples();
+              sendToSheets(key, sid, elapsed);
             }
           }
           console.log('OPENED:', key, sid.slice(0,8));
