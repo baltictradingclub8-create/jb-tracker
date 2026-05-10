@@ -1,5 +1,5 @@
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === '/api/robbery-state') {
       const res = await fetch('https://api.jbvalues.com/v1/robbery-state');
@@ -11,6 +11,6 @@ export default {
         }
       });
     }
-    return fetch(request);
+    return env.ASSETS.fetch(request);
   }
 }
