@@ -744,6 +744,7 @@ function processData(data) {
 
         if (wasOpen && !isOpen) {
           // Just closed
+          console.log('CLOSED:', key, sid.slice(0,8));
           h.closedAt[key] = now;
           h.lastStatus[key] = 'closed';
         } else if (!wasOpen && isOpen) {
@@ -758,6 +759,7 @@ function processData(data) {
               saveCdSamples();
             }
           }
+          console.log('OPENED:', key, sid.slice(0,8));
           h.openedAt[key] = now;
           h.lastStatus[key] = 'open';
           delete h.closedAt[key];
