@@ -719,6 +719,22 @@ function getBestStatus(sid) {
 
 // ─── GOOGLE SHEETS EXPORT ───
 const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwHxkH_E9qAtheU4UehNDSav1YcIYIthnyN7ad8e_yBjSWPEOrUSr-CmjJUSY-ZLdk/exec';
+async function logTransition(event, robbery, serverId) {
+  try {
+    await fetch(SHEETS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'transition',
+        timestamp: new Date().toISOString(),
+        event,
+        robbery,
+        serverId
+      })
+    });
+  } catch(e) {}
+}
 async function sendToSheets(robbery, serverId, elapsed) {
   try {
     await fetch(SHEETS_URL, {
@@ -770,6 +786,7 @@ function processData(data) {
         if (wasOpen && !isOpen) {
           // Just closed
           console.log('CLOSED:', key, sid.slice(0,8));
+          logTransition('CLOSED', key, sid);
           h.closedAt[key] = now;
           h.lastStatus[key] = 'closed';
         } else if (!wasOpen && isOpen) {
@@ -786,6 +803,7 @@ function processData(data) {
             }
           }
           console.log('OPENED:', key, sid.slice(0,8));
+          logTransition('OPENED', key, sid);
           h.openedAt[key] = now;
           h.lastStatus[key] = 'open';
           delete h.closedAt[key];
