@@ -628,7 +628,7 @@ function saveSelections() {
 // ─── COOLDOWN HELPERS ───
 function getLearnedCd(key) {
   const samples = cdSamples[key];
-  if (!samples || samples.length < 3) return null;
+  if (!samples || samples.length < 1) return null;
   const sorted = [...samples].sort((a,b)=>a-b);
   // median
   return sorted[Math.floor(sorted.length/2)];
