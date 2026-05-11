@@ -589,6 +589,25 @@ let showFilter = 'all';
 let sortMode = 'best';
 let hideLowPlayers = false;
 let serverHistory = {}; // sid -> { closedAt:{KEY:ts}, openedAt:{KEY:ts}, lastStatus:{KEY:'open'|'closed'}, server }
+try {
+  const savedHistory = localStorage.getItem('jbgt_serverhistory');
+  if (savedHistory) {
+    const parsed = JSON.parse(savedHistory);
+    // Only restore closedAt and lastStatus, not full server object
+    Object.keys(parsed).forEach(sid => {
+      serverHistory[sid] = { closedAt: parsed[sid].closedAt || {}, openedAt: parsed[sid].openedAt || {}, lastStatus: parsed[sid].lastStatus || {}, lastSeen: parsed[sid].lastSeen || Date.now(), server: null };
+    });
+  }
+} catch(e) {}
+function saveServerHistory() {
+  try {
+    const toSave = {};
+    Object.keys(serverHistory).forEach(sid => {
+      toSave[sid] = { closedAt: serverHistory[sid].closedAt, openedAt: serverHistory[sid].openedAt, lastStatus: serverHistory[sid].lastStatus, lastSeen: serverHistory[sid].lastSeen };
+    });
+    localStorage.setItem('jbgt_serverhistory', JSON.stringify(toSave));
+  } catch(e) {}
+}
 let cdSamples = {};
 try { const savedCd = localStorage.getItem("jbgt_cdsamples"); if (savedCd) cdSamples = JSON.parse(savedCd); } catch(e) {}
 function saveCdSamples() { try { localStorage.setItem("jbgt_cdsamples", JSON.stringify(cdSamples)); } catch(e) {} }
@@ -809,6 +828,7 @@ function processData(data) {
   });
 
   flushQueues();
+  saveServerHistory();
   buildSelector(); // refresh badges
   renderFromCache();
   updateStats();
