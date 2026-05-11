@@ -820,7 +820,12 @@ function renderFromCache() {
   if (!lastData) return;
   const now = Date.now();
 
-  let servers = lastData.servers;
+  // Include servers from history that aren't in current API but still within retention window
+  const currentIds = new Set(lastData.servers.map(s => s.serverId));
+  const historyServers = Object.keys(serverHistory)
+    .filter(sid => !currentIds.has(sid) && serverHistory[sid].server)
+    .map(sid => serverHistory[sid].server);
+  let servers = [...lastData.servers, ...historyServers];
   if (hideLowPlayers) servers = servers.filter(s => s.playerCount >= 3);
 
   // Compute best status for each
